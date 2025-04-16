@@ -2,56 +2,63 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>ニコニコ動画 コメント数グラフ</title>
+  <title>ニコニコ動画 コメント数モニター</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 2em; }
-    h1 { font-size: 2em; margin-bottom: 1em; }
-    canvas { max-width: 600px; margin: 0 auto; }
-    .latest { font-size: 1.5em; margin: 1em 0; }
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 2em;
+      background: #f0f0f0;
+    }
+    h1 {
+      font-size: 3em;
+      margin-bottom: 0.3em;
+      color: #333;
+    }
+    .latest-count {
+      font-size: 4em;
+      color: #e91e63;
+      margin: 0.2em 0 0.5em;
+    }
+    .update-time {
+      font-size: 1.2em;
+      color: #666;
+    }
   </style>
 </head>
 <body>
-  <h1>コメント数履歴（sm125732）</h1>
-  <div class="latest">最新コメント数：<span id="latest-count">読み込み中...</span></div>
-  <canvas id="commentChart"></canvas>
+  <h1>コメント数</h1>
+  <div class="latest-count" id="latest-count">読み込み中...</div>
+  <div class="update-time" id="update-time">--:--:--</div>
 
   <script>
-    async function fetchData() {
-      const response = await fetch("https://nico-comment-backend-production.up.railway.app/data");
-      const data = await response.json();
-
-      const labels = data.map(item => item.time);
-      const counts = data.map(item => item.count);
-      const latest = counts[counts.length - 1];
-
-      document.getElementById("latest-count").textContent = latest;
-
-      const ctx = document.getElementById('commentChart').getContext('2d');
-      new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'コメント数',
-            data: counts,
-            borderWidth: 2,
-            fill: false,
-            tension: 0.2
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          }
-        }
-      });
+    async function updateCommentCount() {
+      try {
+        const res = await fetch("https://nico-comment-backend-production.up.railway.app/data");
+        const data = await res.json();
+        const latest = data[data.length - 1];
+        document.getElementById("latest-count").textContent = latest.count.toLocaleString();
+        const now = new Date();
+        document.getElementById("update-time").textContent = now.toLocaleTimeString();
+      } catch (e) {
+        document.getElementById("latest-count").textContent = "取得失敗";
+      }
     }
 
-    fetchData();
+    // 秒が00になったらスタート、以降毎分更新
+    function startMinuteSyncUpdate() {
+      const now = new Date();
+      const delay = 60000 - (now.getSeconds() * 1000 + now.getMilliseconds());
+      setTimeout(() => {
+        updateCommentCount();
+        setInterval(updateCommentCount, 60000);
+      }, delay);
+    }
+
+    // 最初に即実行してから、00秒ごとのループへ
+    updateCommentCount();
+    startMinuteSyncUpdate();
   </script>
 </body>
 </html>
