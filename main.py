@@ -32,8 +32,12 @@ def fetch_comment_count():
     count = int(match.group(1))
     return count
 
+from datetime import datetime, timezone, timedelta
+
+JST = timezone(timedelta(hours=9))
+
 def save_comment_count(count):
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    now = datetime.now(JST).strftime("%Y-%m-%d %H:%M")
     if not os.path.exists(LOG_FILE):
         with open(LOG_FILE, "w") as f:
             json.dump([], f)
@@ -45,6 +49,7 @@ def save_comment_count(count):
     data.append({"time": now, "count": count})
     with open(LOG_FILE, "w") as f:
         json.dump(data, f)
+
 
 # ⭐️ アプリ起動時に自動で1回だけコメント数を保存！
 @app.on_event("startup")
