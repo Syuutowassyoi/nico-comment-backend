@@ -24,6 +24,7 @@
       font-size: 1.2em;
       color: #444;
       margin-top: 1em;
+      line-height: 1.8em;
     }
   </style>
 </head>
@@ -32,21 +33,40 @@
   <div class="latest-count" id="latest-count">読み込み中...</div>
 
   <div class="info-box">
-    🕒 <strong>現在時刻：</strong><span id="current-time">--:--:--</span><br>
-    🔁 <strong>最終コメント更新：</strong><span id="last-update-time">--:--:--</span>
+    🕒 <strong>現在時刻：</strong><span id="current-time">--</span><br>
+    🔁 <strong>最終コメント更新：</strong><span id="last-update-time">--</span>（<span id="elapsed">--</span>前）
   </div>
 
   <script>
-    // ✅ 現在の時刻を1秒ごとに更新（ローカル表示、通信なし）
+    // 現在時刻を表示（毎秒更新）
     function updateCurrentTime() {
       const now = new Date();
-      const timeStr = now.toLocaleTimeString("ja-JP", { hour12: false });
+      const timeStr = now.toLocaleString("ja-JP", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      });
       document.getElementById("current-time").textContent = timeStr;
     }
     setInterval(updateCurrentTime, 1000);
     updateCurrentTime(); // 初回表示
 
-    // ✅ 最新のコメント数・更新時刻を取得（毎分）
+    let lastUpdateDate = null;
+
+    // 経過秒数を更新（毎秒）
+    function updateElapsedTime() {
+      if (!lastUpdateDate) return;
+      const now = new Date();
+      const diffSec = Math.floor((now - lastUpdateDate) / 1000);
+      document.getElementById("elapsed").textContent = `${diffSec}秒`;
+    }
+    setInterval(updateElapsedTime, 1000);
+
+    // コメント情報取得
     async function updateCommentInfo() {
       try {
         const res = await fetch("https://nico-comment-backend-production.up.railway.app/data");
@@ -54,15 +74,27 @@
         if (data.length > 0) {
           const last = data[data.length - 1];
           document.getElementById("latest-count").textContent = last.count.toLocaleString();
-          document.getElementById("last-update-time").textContent = last.time;
-        } else {
-          document.getElementById("latest-count").textContent = "データなし";
-          document.getElementById("last-update-time").textContent = "--:--:--";
+
+          // 最終更新時刻（JST）
+          const jstTime = new Date(last.time.replace(" ", "T") + ":00+09:00"); // JSTに変換
+          lastUpdateDate = jstTime;
+
+          const timeStr = jstTime.toLocaleString("ja-JP", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false
+          });
+
+          document.getElementById("last-update-time").textContent = timeStr;
         }
       } catch (e) {
         document.getElementById("latest-count").textContent = "取得失敗";
-        document.getElementById("last-update-time").textContent = "取得失敗";
-        console.error("fetch error", e);
+        document.getElementById("last-update-time").textContent = "--";
+        document.getElementById("elapsed").textContent = "--";
       }
     }
 
