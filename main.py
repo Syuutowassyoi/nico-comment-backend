@@ -78,10 +78,21 @@ def update_count():
 @app.get("/data")
 def get_data():
     if not os.path.exists(LOG_FILE):
-        return []
+        with open(LOG_FILE, "w") as f:
+            json.dump([], f)
     with open(LOG_FILE, "r") as f:
         try:
             data = json.load(f)
         except json.JSONDecodeError:
-            return []
+            data = []
+    # ログが空なら最新コメント数を自動取得・保存！
+    if len(data) == 0:
+        try:
+            count = fetch_comment_count()
+            save_comment_count(count)
+            data = [{"time": datetime.now().strftime("%Y-%m-%d %H:%M"), "count": count}]
+        except Exception as e:
+            # 失敗した場合は空リストのまま
+            pass
     return data
+
