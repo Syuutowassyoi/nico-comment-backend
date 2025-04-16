@@ -12,13 +12,15 @@ def fetch_comment_count():
     url = f"https://ext.nicovideo.jp/api/getthumbinfo/{VIDEO_ID}"
     res = requests.get(url)
     if res.status_code != 200:
-        return None
+        raise Exception(f"API request failed with status {res.status_code}")
     data = res.text
-    count_line = [line for line in data.splitlines() if "<comment_num>" in line]
+    lines = data.splitlines()
+    count_line = next((line.strip() for line in lines if "<comment_num>" in line), None)
     if not count_line:
-        return None
-    count = int(count_line[0].replace("<comment_num>", "").replace("</comment_num>", ""))
+        raise Exception("comment_num not found in API response")
+    count = int(count_line.replace("<comment_num>", "").replace("</comment_num>", ""))
     return count
+
 
 def save_comment_count(count):
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
