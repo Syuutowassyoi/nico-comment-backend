@@ -9,35 +9,29 @@ import traceback
 
 app = FastAPI()
 
-# ⭐️ CORS設定（GitHub Pages からアクセス可能にする）
+# CORS許可（GitHub Pagesなどからのアクセス許可）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 必要なら ["https://syuutowassyoi.github.io"] に変更
+    allow_origins=["*"],  # 必要に応じて限定可能
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 環境変数から動画IDを取得（Railwayの Variables で設定）
 VIDEO_ID = os.getenv("VIDEO_ID", "sm125732")
 LOG_FILE = "comment_log.json"
 
-# コメント数をニコニコAPIから取得
 def fetch_comment_count():
     url = f"https://ext.nicovideo.jp/api/getthumbinfo/{VIDEO_ID}"
     res = requests.get(url)
     if res.status_code != 200:
         raise Exception(f"API request failed with status {res.status_code}")
-    
-    # 正規表現で <comment_num>数字</comment_num> を抜き出す
     match = re.search(r"<comment_num>(\d+)</comment_num>", res.text)
     if not match:
         raise Exception("comment_num not found in API response")
-    
     count = int(match.group(1))
     return count
 
-# コメント数を保存（ログに追加）
 def save_comment_count(count):
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     if not os.path.exists(LOG_FILE):
@@ -52,12 +46,20 @@ def save_comment_count(count):
     with open(LOG_FILE, "w") as f:
         json.dump(data, f)
 
-# 動作確認用（/）
+# ⭐️ アプリ起動時に自動で1回だけコメント数を保存！
+@app.on_event("startup")
+def startup_event():
+    try:
+        count = fetch_comment_count()
+        save_comment_count(count)
+        print(f"Startup update complete. Count = {count}")
+    except Exception as e:
+        print(f"Startup update failed: {e}")
+
 @app.get("/")
 def read_root():
     return {"message": "Nico Comment Backend is running!"}
 
-# コメント数を取得・保存（/update）
 @app.get("/update")
 def update_count():
     try:
@@ -73,7 +75,6 @@ def update_count():
             "trace": traceback.format_exc()
         }
 
-# 保存されたコメント履歴を返す（/data）
 @app.get("/data")
 def get_data():
     if not os.path.exists(LOG_FILE):
