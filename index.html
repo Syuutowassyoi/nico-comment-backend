@@ -46,7 +46,7 @@
       }
     }
 
-    // 秒が00になったらスタート、以降毎分更新
+    // 秒が00になったらスタート、以降毎分更
     function startMinuteSyncUpdate() {
       const now = new Date();
       const delay = 60000 - (now.getSeconds() * 1000 + now.getMilliseconds());
