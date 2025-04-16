@@ -38,35 +38,9 @@
   </div>
 
   <script>
-    // 現在時刻を表示（毎秒更新）
-    function updateCurrentTime() {
-      const now = new Date();
-      const timeStr = now.toLocaleString("ja-JP", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false
-      });
-      document.getElementById("current-time").textContent = timeStr;
-    }
-    setInterval(updateCurrentTime, 1000);
-    updateCurrentTime(); // 初回表示
-
     let lastUpdateDate = null;
 
-    // 経過秒数を更新（毎秒）
-    function updateElapsedTime() {
-      if (!lastUpdateDate) return;
-      const now = new Date();
-      const diffSec = Math.floor((now - lastUpdateDate) / 1000);
-      document.getElementById("elapsed").textContent = `${diffSec}秒`;
-    }
-    setInterval(updateElapsedTime, 1000);
-
-    // コメント情報取得
+    // ✅ コメント情報を取得する関数（呼び出し用）
     async function updateCommentInfo() {
       try {
         const res = await fetch("https://nico-comment-backend-production.up.railway.app/data");
@@ -75,8 +49,7 @@
           const last = data[data.length - 1];
           document.getElementById("latest-count").textContent = last.count.toLocaleString();
 
-          // 最終更新時刻（JST）
-          const jstTime = new Date(last.time.replace(" ", "T") + ":00+09:00"); // JSTに変換
+          const jstTime = new Date(last.time.replace(" ", "T") + ":00+09:00"); // JST補正
           lastUpdateDate = jstTime;
 
           const timeStr = jstTime.toLocaleString("ja-JP", {
@@ -98,8 +71,36 @@
       }
     }
 
-    updateCommentInfo(); // 初回取得
-    setInterval(updateCommentInfo, 60000); // 毎分更新
+    // ✅ 現在時刻と経過秒を毎秒更新する関数
+    function updateClockAndElapsed() {
+      const now = new Date();
+      const timeStr = now.toLocaleString("ja-JP", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      });
+      document.getElementById("current-time").textContent = timeStr;
+
+      // 経過秒表示
+      if (lastUpdateDate) {
+        const diffSec = Math.floor((now - lastUpdateDate) / 1000);
+        document.getElementById("elapsed").textContent = `${diffSec}秒`;
+      }
+
+      // 00秒になったらコメント情報を再取得！
+      if (now.getSeconds() === 0) {
+        updateCommentInfo();
+      }
+    }
+
+    // ✅ 初期化処理
+    updateCommentInfo();
+    updateClockAndElapsed();
+    setInterval(updateClockAndElapsed, 1000); // 毎秒実行
   </script>
 </body>
 </html>
