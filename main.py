@@ -58,7 +58,7 @@ def update_count():
             return {"status": "success", "count": count}
         return {"status": "no count"}
     except Exception as e:
-        # エラーの原因を返す
+        # エラーの原因を返します
         return {"status": "error", "message": str(e)}
 
 @app.get("/data")
