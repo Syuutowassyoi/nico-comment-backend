@@ -2,63 +2,72 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>ニコニコ動画 コメント数モニター</title>
+  <title>ニコニコ コメントモニター</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: sans-serif;
       text-align: center;
       padding: 2em;
-      background: #f0f0f0;
+      background: #f4f4f4;
     }
     h1 {
-      font-size: 3em;
-      margin-bottom: 0.3em;
-      color: #333;
+      font-size: 2.5em;
+      margin-bottom: 0.5em;
     }
     .latest-count {
       font-size: 4em;
       color: #e91e63;
       margin: 0.2em 0 0.5em;
     }
-    .update-time {
+    .info-box {
       font-size: 1.2em;
-      color: #666;
+      color: #444;
+      margin-top: 1em;
     }
   </style>
 </head>
 <body>
   <h1>コメント数</h1>
   <div class="latest-count" id="latest-count">読み込み中...</div>
-  <div class="update-time" id="update-time">--:--:--</div>
+
+  <div class="info-box">
+    🕒 <strong>現在時刻：</strong><span id="current-time">--:--:--</span><br>
+    🔁 <strong>最終コメント更新：</strong><span id="last-update-time">--:--:--</span>
+  </div>
 
   <script>
-    async function updateCommentCount() {
+    // ✅ 現在の時刻を1秒ごとに更新（ローカル表示、通信なし）
+    function updateCurrentTime() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString("ja-JP", { hour12: false });
+      document.getElementById("current-time").textContent = timeStr;
+    }
+    setInterval(updateCurrentTime, 1000);
+    updateCurrentTime(); // 初回表示
+
+    // ✅ 最新のコメント数・更新時刻を取得（毎分）
+    async function updateCommentInfo() {
       try {
         const res = await fetch("https://nico-comment-backend-production.up.railway.app/data");
         const data = await res.json();
-        const latest = data[data.length - 1];
-        document.getElementById("latest-count").textContent = latest.count.toLocaleString();
-        const now = new Date();
-        document.getElementById("update-time").textContent = now.toLocaleTimeString();
+        if (data.length > 0) {
+          const last = data[data.length - 1];
+          document.getElementById("latest-count").textContent = last.count.toLocaleString();
+          document.getElementById("last-update-time").textContent = last.time;
+        } else {
+          document.getElementById("latest-count").textContent = "データなし";
+          document.getElementById("last-update-time").textContent = "--:--:--";
+        }
       } catch (e) {
         document.getElementById("latest-count").textContent = "取得失敗";
+        document.getElementById("last-update-time").textContent = "取得失敗";
+        console.error("fetch error", e);
       }
     }
 
-    // 秒が00になったらスタート、以降毎分更
-    function startMinuteSyncUpdate() {
-      const now = new Date();
-      const delay = 60000 - (now.getSeconds() * 1000 + now.getMilliseconds());
-      setTimeout(() => {
-        updateCommentCount();
-        setInterval(updateCommentCount, 60000);
-      }, delay);
-    }
-
-    // 最初に即実行してから、00秒ごとのループへ
-    updateCommentCount();
-    startMinuteSyncUpdate();
+    updateCommentInfo(); // 初回取得
+    setInterval(updateCommentInfo, 60000); // 毎分更新
   </script>
 </body>
 </html>
