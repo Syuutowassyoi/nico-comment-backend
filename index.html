@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ニコニコ動画 コメント数グラフ</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 2em; }
+    h1 { font-size: 2em; margin-bottom: 1em; }
+    canvas { max-width: 600px; margin: 0 auto; }
+    .latest { font-size: 1.5em; margin: 1em 0; }
+  </style>
+</head>
+<body>
+  <h1>コメント数履歴（sm125732）</h1>
+  <div class="latest">最新コメント数：<span id="latest-count">読み込み中...</span></div>
+  <canvas id="commentChart"></canvas>
+
+  <script>
+    async function fetchData() {
+      const response = await fetch("https://nico-comment-backend-production.up.railway.app/data");
+      const data = await response.json();
+
+      const labels = data.map(item => item.time);
+      const counts = data.map(item => item.count);
+      const latest = counts[counts.length - 1];
+
+      document.getElementById("latest-count").textContent = latest;
+
+      const ctx = document.getElementById('commentChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'コメント数',
+            data: counts,
+            borderWidth: 2,
+            fill: false,
+            tension: 0.2
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    fetchData();
+  </script>
+</body>
+</html>
