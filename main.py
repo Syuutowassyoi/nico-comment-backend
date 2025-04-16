@@ -37,11 +37,19 @@ def read_root():
 
 @app.get("/update")
 def update_count():
-    count = fetch_comment_count()
-    if count is not None:
-        save_comment_count(count)
-        return {"status": "success", "count": count}
-    return {"status": "error"}
+    try:
+        count = fetch_comment_count()
+        if count is not None:
+            save_comment_count(count)
+            return {"status": "success", "count": count}
+        return {"status": "no count"}
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "trace": traceback.format_exc()
+        }
 
 @app.get("/data")
 def get_data():
